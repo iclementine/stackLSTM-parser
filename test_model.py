@@ -1,4 +1,4 @@
-from model_tcapi import SRTransition
+from model import SRTransition
 import tbtk
 
 import re
@@ -9,7 +9,7 @@ import torchtext
 import dynet as dy
 
 
-corpus_path = os.path.expanduser('~/projects/treebanks/en-ud/')
+corpus_path = os.path.expanduser('./treebanks/en-ud/')
 train = open(os.path.join(corpus_path, 'en-ud-train.pickle'), 'rb')
 valid = open(os.path.join(corpus_path, 'en-ud-dev.pickle'), 'rb')
 test = open(os.path.join(corpus_path, 'en-ud-test.pickle'), 'rb')
@@ -48,18 +48,5 @@ spec = (vocab_form, v_form, d_form, alpha, vocab_upos, v_upos, d_upos, vocab_xpo
 parser = SRTransition.from_spec(spec, pc)
 parser.train(sentences, epoch=100, valid_dataset=valid_sentences, test_dataset=test_sentences, resume=True)
 
-#sent = sentences[0]
-#loss, pred_arcs = parser(sent.form, sent.upos, sent.xpos, train=False, 
-                         #target_transitions=sent.transitions)
-#print(' '.join(sent.form))
-#for x in pred_arcs:
-    #print(x)
-
-#loss, pred_arcs = parser(sent.form, sent.upos, sent.xpos, train=True, 
-                         #target_transitions=sent.transitions)
-#print(' '.join(sent.form))
-#for x in pred_arcs:
-    #print(x)
-#print("transition-loss: {}\ndeprel-loss: {}".format(loss[0].scalar_value(), loss[1].scalar_value()))
 
 
