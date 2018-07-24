@@ -3,10 +3,10 @@ a simple modification of Chris Dyer's stack LSTM Parser
 
 requires:
 
-dynet 2.0.3 (build from source at github)
-torchtext
-conllu
-python3
+1. dynet 2.0.3 (build from source at github)
+2. torchtext
+3. conllu
+4. python3
 
 ## Basic info
 
