@@ -8,6 +8,7 @@ import dynet as dy
 import numpy as np
 import random
 import os
+import time
 
 from mlp import OneLayerMLP
 from utils import Arc
@@ -177,7 +178,7 @@ class SRTransition(object):
         keep_original_form = (np.random.rand() < p) or not train
         form_vec = dy.lookup(self.e_form, self.vocab_form.stoi[w_form] if keep_original_form else self.vocab_form.stoi['<unk>'])
         upos_vec = dy.lookup(self.e_upos, self.vocab_upos.stoi[w_upos]) if self.d_upos else None
-        xpos_vec = dy.lookup(self.e_xpos, self.vocab_xpos.stoi[w_xpos]) if self.d_upos else None #defaultdict
+        xpos_vec = dy.lookup(self.e_xpos, self.vocab_xpos.stoi[w_xpos]) if self.d_xpos else None #defaultdict
         vecs = [form_vec, upos_vec, xpos_vec]
         
         # import pdb; pdb.set_trace()
@@ -248,10 +249,10 @@ class SRTransition(object):
                 #(loss[0] + loss[1]).backward()
                 trainer.update()
                 if sent_id % 100 == 0:
-                    print("[Train]\tepoch: {}\tsent_id: {}\tstructure_loss: {}\tdeprel_loss: {}".format(e, sent_id, loss[0].scalar_value() / length, loss[1].scalar_value() / length))
+                    print("[Train]\tepoch: {}\tsent_id: {}\tstructure_loss: {:.6f}\tdeprel_loss: {:.6f}".format(e, sent_id, loss[0].scalar_value() / length, loss[1].scalar_value() / length))
             if valid_dataset:
                 uas, las, n_sents, n_tokens = self.test(valid_dataset)
-                print("[Valid]\tepoch: {}\tUAS: {}\tLAS: {}".format(e, uas, las))
+                print("[Valid]\tepoch: {}\tUAS: {:.6f}\tLAS: {:.6f}".format(e, uas, las))
                 if uas > best_uas or las > best_las:
                     self.pc.save("save/model_{}".format(e))
                     records.append((e, uas, las))
@@ -261,7 +262,7 @@ class SRTransition(object):
             best_uas_model = max(records, key=itemgetter(1))[0]
             self.pc.populate("save/model_{}".format(best_uas_model))
             uas, las, n_sents, n_tokens = self.test(test_dataset)
-            print("[Test]\tUAS: {}\tLAS: {}".format(uas, las))
+            print("[Test]\tUAS: {:.6f}\tLAS: {:.6f}".format(uas, las))
             
             
     def test(self, dataset):
@@ -270,6 +271,7 @@ class SRTransition(object):
         correct_head = 0
         correct_both = 0
         
+        test_start = time.time()
         for sent in dataset:
             dy.renew_cg()
             _, pred_arcs = self.__call__(sent.form, sent.upos, sent.xpos, train=False, target_transitions=None)
@@ -282,6 +284,8 @@ class SRTransition(object):
                     correct_head += 1
                     if r_pred == r_gold:
                         correct_both += 1
+        test_end = time.time()
+        print("[eval time] {} sents\t{:.6f}s\t{:.6f}sents/s\n".format(nsents, test_end - test_start, (test_end - test_start)/n_sents))
         uas = correct_head / n_tokens
         las = correct_both / n_tokens
         return uas, las, n_sents, n_tokens
