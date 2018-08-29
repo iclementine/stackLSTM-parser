@@ -285,7 +285,7 @@ class SRTransition(object):
                     if r_pred == r_gold:
                         correct_both += 1
         test_end = time.time()
-        print("[eval time] {} sents\t{:.6f}s\t{:.6f}sents/s\n".format(nsents, test_end - test_start, (test_end - test_start)/n_sents))
+        print("[eval time] {} sents\t{:.6f}s\t{:.6f}sents/s\n".format(n_sents, test_end - test_start, (test_end - test_start)/n_sents))
         uas = correct_head / n_tokens
         las = correct_both / n_tokens
         return uas, las, n_sents, n_tokens
