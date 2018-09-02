@@ -4,7 +4,7 @@ import mmap
 import re
 import os
 import pickle
-import torchtext
+import pytext
 
 
 class ConllToken(object):
@@ -72,6 +72,7 @@ class ConllSent(object):
         length = len(self.form)
         stack = []
         transitions = []
+        actions = []
         
         def is_dependent():
             stack_top = stack[-1][0]
@@ -84,22 +85,27 @@ class ConllSent(object):
             if len(stack) < 2:
                 stack.append((cursor + 1, self.head[cursor], self.deprel[cursor]))
                 transitions.append((self.SHIFT, self.form[cursor]))
+                actions.append("Shift")
                 cursor += 1
             elif stack[-2][1] == stack[-1][0]:
                 tok = stack.pop(-2)
                 transitions.append((self.REDUCE_L, tok[2]))
+                actions.append("Lreduce_{}".format(tok[2]))
             elif stack[-1][1] == stack[-2][0] and not is_dependent():
                 tok = stack.pop()
                 transitions.append((self.REDUCE_R, tok[2]))
+                actions.append("Rreduce_{}".format(tok[2]))
             elif cursor < length:
                 stack.append((cursor + 1, self.head[cursor], self.deprel[cursor]))
                 transitions.append((self.SHIFT, self.form[cursor]))
+                actions.append("Shift")
                 cursor += 1
             else:
                 raise Exception("Not a valid projective tree.")
         tok = stack.pop()
         transitions.append((self.REDUCE_R, tok[2]))
-        return transitions
+        actions.append("Rreduce_{}".format(tok[2]))
+        return transitions, actions
             
 
 class FastConlluReader(object):
@@ -176,7 +182,7 @@ class AltConlluReader(object):
         n_non_proj = 0
         for sent in self:
             try:
-                sent.transitions = sent.arc_std();
+                sent.transitions, sent.actions = sent.arc_std();
                 proj_sents.append(sent)
             except:
                 n_non_proj += 1
@@ -214,22 +220,21 @@ class CorpusReader(object):
             #line = [' ' if x == '' else x for x in line]
             yield line
 
-def build_vocab(fname):
-    f_form = torchtext.data.Field(lower=True, tokenize=list)
-    f_upos = torchtext.data.Field(tokenize=list)
-    f_xpos = torchtext.data.Field(tokenize=list)
-    f_deprel = torchtext.data.Field(tokenize=list)
-    fields = [('form', f_form), ('upos', f_upos), ('xpos', f_xpos), ('deprel', f_deprel)]
+def build_vocab(fname, lower=False):
+    f_form = pytext.data.Field(lower=lower, tokenize=list)
+    f_upos = pytext.data.Field(tokenize=list)
+    f_xpos = pytext.data.Field(tokenize=list)
+    f_deprel = pytext.data.Field(tokenize=list)
+    f_actions = pytext.data.Field(tokenize=list)
+    fields = [('form', f_form), ('upos', f_upos), ('xpos', f_xpos), ('deprel', f_deprel), ('actions', f_actions)]
 
     f = open(fname, 'rb')
     sentences = pickle.load(f)
-    examples = [torchtext.data.Example.fromlist([sent.form, sent.upos, sent.xpos, sent.deprel], fields) for sent in sentences]
-    train = torchtext.data.Dataset(examples, fields)
+    examples = [pytext.data.Example.fromlist([sent.form, sent.upos, sent.xpos, sent.deprel, sent.actions], fields) for sent in sentences]
+    train = pytext.data.Dataset(examples, fields)
     
-    f_form.build_vocab(train)
-    f_upos.build_vocab(train)
-    f_xpos.build_vocab(train)
-    f_deprel.build_vocab(train)
+    for name, field in fields:
+        field.build_vocab(train)
     
     out_path = os.path.join(os.path.dirname(fname), 'vocabs.pickle')
     out_file = open(out_path, 'wb')

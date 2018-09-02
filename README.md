@@ -4,7 +4,7 @@ a simple modification of Chris Dyer's stack LSTM Parser
 requires:
 
 1. dynet 2.0.3 (build from source at github)
-2. torchtext
+2. pytext
 3. conllu
 4. python3
 
@@ -40,6 +40,6 @@ python3 build_vocabs.py
 python3 test_model.py
 ```
 
-Hyper-parameters are just saved in `test_model.py` and I would consider use configParer for the next try.
+Hyper-parameters are just saved in `test_model.py` and I would consider using a  configParer for the next try.
 
 Enjoy!
